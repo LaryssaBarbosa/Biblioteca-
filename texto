@@ -1,0 +1,261 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Biblioteca
+{
+    class Livro
+    {
+        public int isbn;
+        public string titulo;
+        public string autor;
+        public string editora;
+        public List<Exemplar> exemplares = new List<Exemplar>();
+
+        public Livro(int isbn, string titulo, string autor, string editora)
+        {
+            this.isbn = isbn;
+            this.titulo = titulo;
+            this.autor = autor;
+            this.editora = editora;
+        }
+
+        public void AdicionarExemplar(Exemplar exemplar)
+        {
+            exemplares.Add(exemplar);
+        }
+
+        public int QtdeExemplares()
+        {
+            return exemplares.Count;
+        }
+
+        public int QtdeDisponiveis()
+        {
+            return exemplares.Count(e => e.Disponivel());
+        }
+
+        public int QtdeEmprestimos()
+        {
+            int total = 0;
+            foreach (var ex in exemplares)
+            {
+                total += ex.QtdeEmprestimos();
+            }
+            return total;
+        }
+
+        public double PercDisponibilidade()
+        {
+            if (QtdeExemplares() == 0) return 0;
+            return (double)QtdeDisponiveis() / QtdeExemplares() * 100;
+        }
+    }
+
+    class Exemplar
+    {
+        public int tombo;
+        public List<Emprestimo> emprestimos = new List<Emprestimo>();
+
+        public bool Emprestar()
+        {
+            if (Disponivel())
+            {
+                emprestimos.Add(new Emprestimo { dtEmprestimo = DateTime.Now, dtDevolucao = DateTime.MinValue });
+                return true;
+            }
+            return false;
+        }
+
+        public bool Devolver()
+        {
+            var ultimo = emprestimos.LastOrDefault(e => !e.EstaDevolvido());
+            if (ultimo != null)
+            {
+                ultimo.dtDevolucao = DateTime.Now;
+                return true;
+            }
+            return false;
+        }
+
+        public bool Disponivel()
+        {
+            return emprestimos.Count == 0 || emprestimos.All(e => e.EstaDevolvido());
+        }
+
+        public int QtdeEmprestimos()
+        {
+            return emprestimos.Count;
+        }
+    }
+
+    class Emprestimo
+    {
+        public DateTime dtEmprestimo;
+        public DateTime dtDevolucao;
+
+        public bool EstaDevolvido()
+        {
+            return dtDevolucao != DateTime.MinValue;
+        }
+    }
+
+    class Livros
+    {
+        public List<Livro> acervo = new List<Livro>();
+
+        public void Adicionar(Livro livro)
+        {
+            acervo.Add(livro);
+        }
+
+        public Livro Pesquisar(int isbn)
+        {
+            return acervo.FirstOrDefault(l => l.isbn == isbn);
+        }
+    }
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Livros acervo = new Livros();
+            int opcao;
+
+            do
+            {
+                Console.WriteLine("\n===== MENU BIBLIOTECA =====");
+                Console.WriteLine("0. Sair");
+                Console.WriteLine("1. Adicionar livro");
+                Console.WriteLine("2. Pesquisar livro (sintético)");
+                Console.WriteLine("3. Pesquisar livro (analítico)");
+                Console.WriteLine("4. Adicionar exemplar");
+                Console.WriteLine("5. Registrar empréstimo");
+                Console.WriteLine("6. Registrar devolução");
+                Console.Write("Escolha: ");
+                opcao = int.Parse(Console.ReadLine());
+                Console.Clear();
+
+                switch (opcao)
+                {
+                    case 1:
+                        Console.Write("ISBN: ");
+                        int isbn = int.Parse(Console.ReadLine());
+                        Console.Write("Título: ");
+                        string titulo = Console.ReadLine();
+                        Console.Write("Autor: ");
+                        string autor = Console.ReadLine();
+                        Console.Write("Editora: ");
+                        string editora = Console.ReadLine();
+
+                        acervo.Adicionar(new Livro(isbn, titulo, autor, editora));
+                        Console.WriteLine("Livro adicionado com sucesso!");
+                        break;
+
+                    case 2:
+                        Console.Write("Informe o ISBN: ");
+                        int isbnPesq = int.Parse(Console.ReadLine());
+                        Livro livro = acervo.Pesquisar(isbnPesq);
+                        if (livro != null)
+                        {
+                            Console.WriteLine($"\nTítulo: {livro.titulo}");
+                            Console.WriteLine($"Autor: {livro.autor}");
+                            Console.WriteLine($"Editora: {livro.editora}");
+                            Console.WriteLine($"Total de exemplares: {livro.QtdeExemplares()}");
+                            Console.WriteLine($"Disponíveis: {livro.QtdeDisponiveis()}");
+                            Console.WriteLine($"Empréstimos: {livro.QtdeEmprestimos()}");
+                            Console.WriteLine($"% Disponibilidade: {livro.PercDisponibilidade():F2}%");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Livro não encontrado!");
+                        }
+                        break;
+
+                    case 3:
+                        Console.Write("Informe o ISBN: ");
+                        int isbnAnalitico = int.Parse(Console.ReadLine());
+                        Livro livroA = acervo.Pesquisar(isbnAnalitico);
+                        if (livroA != null)
+                        {
+                            Console.WriteLine($"\nTítulo: {livroA.titulo}");
+                            Console.WriteLine($"Autor: {livroA.autor}");
+                            Console.WriteLine($"Editora: {livroA.editora}");
+                            Console.WriteLine($"Total: {livroA.QtdeExemplares()} | Disponíveis: {livroA.QtdeDisponiveis()} | Empréstimos: {livroA.QtdeEmprestimos()}");
+                            Console.WriteLine($"% Disponibilidade: {livroA.PercDisponibilidade():F2}%");
+
+                            foreach (var ex in livroA.exemplares)
+                            {
+                                Console.WriteLine($"\nExemplar Tombo: {ex.tombo}");
+                                Console.WriteLine($"Disponível: {(ex.Disponivel() ? "Sim" : "Não")}");
+                                Console.WriteLine($"Total de Empréstimos: {ex.QtdeEmprestimos()}");
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Livro não encontrado!");
+                        }
+                        break;
+
+                    case 4:
+                        Console.Write("Informe o ISBN do livro: ");
+                        int isbnEx = int.Parse(Console.ReadLine());
+                        Livro livroEx = acervo.Pesquisar(isbnEx);
+                        if (livroEx != null)
+                        {
+                            Console.Write("Tombo do exemplar: ");
+                            int tombo = int.Parse(Console.ReadLine());
+                            livroEx.AdicionarExemplar(new Exemplar { tombo = tombo });
+                            Console.WriteLine("Exemplar adicionado!");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Livro não encontrado!");
+                        }
+                        break;
+
+                    case 5:
+                        Console.Write("ISBN: ");
+                        int isbnEmp = int.Parse(Console.ReadLine());
+                        Livro livroEmp = acervo.Pesquisar(isbnEmp);
+                        if (livroEmp != null)
+                        {
+                            Console.Write("Tombo do exemplar: ");
+                            int tomboEmp = int.Parse(Console.ReadLine());
+                            var ex = livroEmp.exemplares.FirstOrDefault(e => e.tombo == tomboEmp);
+                            if (ex != null && ex.Emprestar())
+                                Console.WriteLine("Empréstimo registrado!");
+                            else
+                                Console.WriteLine("Exemplar indisponível!");
+                        }
+                        else
+                            Console.WriteLine("Livro não encontrado!");
+                        break;
+
+                    case 6:
+                        Console.Write("ISBN: ");
+                        int isbnDev = int.Parse(Console.ReadLine());
+                        Livro livroDev = acervo.Pesquisar(isbnDev);
+                        if (livroDev != null)
+                        {
+                            Console.Write("Tombo do exemplar: ");
+                            int tomboDev = int.Parse(Console.ReadLine());
+                            var ex = livroDev.exemplares.FirstOrDefault(e => e.tombo == tomboDev);
+                            if (ex != null && ex.Devolver())
+                                Console.WriteLine("Devolução registrada!");
+                            else
+                                Console.WriteLine("Exemplar não está emprestado!");
+                        }
+                        else
+                            Console.WriteLine("Livro não encontrado!");
+                        break;
+                }
+
+            } while (opcao != 0);
+
+            Console.WriteLine("Saindo...");
+        }
+    }
+}
+
+
